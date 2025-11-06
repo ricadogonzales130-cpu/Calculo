@@ -1,399 +1,228 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <title>Dashboard — Monitoreo Ciénaga Grande</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-sA+qQb2fC0y2s8k9+g6Jp0s3K8b6vQ0eF9vIBf3y+gI=" crossorigin=""/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-sA+qQb2fC0y2s8k9+g6Jp0s3K8b6vQ0eF9vIBf3y+gI=" crossorigin=""></script>
-
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel de Monitoreo — Ciénaga Grande</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    :root{
-      --bg:#0f1724; /* professional dark */
-      --card:#111827;
-      --muted:#94a3b8;
-      --accent:#0ea5a4;
-      --danger:#ef4444;
-      --glass: rgba(255,255,255,0.03);
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #0f172a;
+      color: #f1f5f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
     }
-    html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#051320);font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;}
-    .container{max-width:1200px;margin:18px auto;padding:18px;color:#e6eef6;}
-    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-    .title{display:flex;gap:12px;align-items:center}
-    .logo{width:54px;height:54px;background:linear-gradient(90deg,#065f73,#07b3b0);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;color:white}
-    h1{font-size:20px;margin:0}
-    p.subtitle{margin:0;color:var(--muted);font-size:13px}
-    .grid{display:grid;grid-template-columns: 1fr 420px;gap:16px}
-    .card{background:var(--card);border-radius:10px;padding:12px;box-shadow: 0 6px 18px rgba(2,6,23,0.6);border: 1px solid rgba(255,255,255,0.03)}
-    /* left column layout */
-    .left-top{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
-    .chart-wrap{height:260px;padding:8px;background:var(--glass);border-radius:8px}
-    .gauge-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:260px}
-    .map{height:420px;border-radius:8px;overflow:hidden}
-    .controls{display:flex;gap:8px;align-items:center;margin-top:8px}
-    button{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted);padding:8px 10px;border-radius:8px;cursor:pointer}
-    button.primary{background:var(--accent);border:none;color:#052023;font-weight:600}
-    .badge{padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.03);font-size:13px;color:var(--muted)}
-    .alerts{margin-top:12px;padding:12px;border-radius:8px;background:linear-gradient(90deg, rgba(239,68,68,0.12), rgba(239,68,68,0.04));color:var(--danger);display:none}
-    .legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
-    .legend .item{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:13px}
-    .dot{width:14px;height:14px;border-radius:4px}
-    footer{font-size:12px;color:var(--muted);margin-top:12px}
-    /* responsive */
-    @media (max-width:980px){
-      .grid{grid-template-columns: 1fr; }
-      .map{height:320px}
-      .left-top{grid-template-columns:1fr}
+
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    h2 {
+      font-size: 1rem;
+      font-weight: 400;
+      text-align: center;
+      color: #94a3b8;
+      margin-bottom: 20px;
+    }
+
+    .dashboard {
+      background: #1e293b;
+      border-radius: 20px;
+      padding: 30px;
+      width: 90%;
+      max-width: 1000px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.4);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-gap: 30px;
+    }
+
+    .card {
+      background: #0f172a;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: inset 0 0 8px rgba(255,255,255,0.05);
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 300px !important;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    button {
+      background: #2563eb;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 10px;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    .alert {
+      text-align: center;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    .alert.red {
+      color: #f87171;
+    }
+
+    .alert.green {
+      color: #34d399;
+    }
+
+    footer {
+      margin-top: 20px;
+      color: #94a3b8;
+      font-size: 0.9rem;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <div class="title">
-        <div class="logo">CG</div>
-        <div>
-          <h1>Panel de Monitoreo — Ciénaga Grande</h1>
-          <p class="subtitle">Simulación en tiempo real de turbidez y sedimentación — Integración maqueta física + software</p>
-        </div>
+  <h1>🌊 Panel de Monitoreo — Ciénaga Grande</h1>
+  <h2>Simulación en tiempo real de turbidez del agua (sedimentación)</h2>
+
+  <div class="dashboard">
+    <div class="card">
+      <canvas id="turbidezChart"></canvas>
+    </div>
+
+    <div class="card">
+      <h3>Turbidez actual: <span id="turbidezValue">--</span> FTU</h3>
+      <h4>Nivel del agua: <span id="nivelValue">--</span> m</h4>
+      <h4>Estado: <span id="estado">Esperando datos...</span></h4>
+
+      <div class="controls">
+        <button id="startBtn">Iniciar</button>
+        <button id="pauseBtn">Pausar</button>
+        <button id="resetBtn">Reset</button>
       </div>
-      <div style="text-align:right">
-        <div class="badge">Sensor simulado: 1 Nodo</div>
-        <div style="height:6px"></div>
-        <div class="badge" id="lastTime">Última lectura: —</div>
-      </div>
-    </header>
-
-    <div class="grid">
-      <!-- LEFT: charts + map -->
-      <div>
-        <div class="card left-top">
-          <div class="chart-wrap">
-            <canvas id="turbChart"></canvas>
-          </div>
-          <div class="gauge-wrap card" style="display:flex;flex-direction:column;justify-content:center;align-items:center;">
-            <canvas id="gaugeChart" width="200" height="200"></canvas>
-            <div style="margin-top:8px;color:var(--muted)">Turbidez (FTU simulado)</div>
-            <div id="gaugeValue" style="font-weight:700;margin-top:6px;font-size:18px;color:#fff">--</div>
-            <div class="controls" style="margin-top:10px">
-              <button id="btnToggle" class="primary">Pausar</button>
-              <button id="btnReset">Reset</button>
-            </div>
-            <div style="margin-top:8px;color:var(--muted);font-size:13px">Velocidad:
-              <input id="speed" type="range" min="500" max="5000" step="500" value="2000" style="vertical-align:middle;margin-left:6px">
-            </div>
-          </div>
-        </div>
-
-        <div class="card" style="margin-top:12px">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div style="font-weight:700">Mapa — Ciénaga & zonas</div>
-            <div style="color:var(--muted);font-size:13px">Coordenadas aproximadas</div>
-          </div>
-          <div id="map" class="map" style="margin-top:8px"></div>
-          <div class="legend">
-            <div class="item"><div class="dot" style="background:#0ea5a4"></div> Agua limpia</div>
-            <div class="item"><div class="dot" style="background:#f59e0b"></div> Turbidez moderada</div>
-            <div class="item"><div class="dot" style="background:#ef4444"></div> Alta sedimentación</div>
-          </div>
-          <div style="display:flex;gap:10px;margin-top:10px">
-            <div class="badge">Río Magdalena → entrada</div>
-            <div class="badge">Ciénaga Grande → zona central</div>
-            <div class="badge">Mar Caribe → salida</div>
-          </div>
-          <div class="alerts" id="alertBox">⚠️ Alta sedimentación detectada en la Ciénaga</div>
-        </div>
-      </div>
-
-      <!-- RIGHT: Info card -->
-      <div>
-        <div class="card" style="height:100%;">
-          <h3 style="margin-top:0">Lectura actual</h3>
-          <p style="color:var(--muted);margin-top:6px">Valores simulados que reflejan la turbidez en la maqueta/pecera y su posible correlación con datos satelitales.</p>
-
-          <div style="margin-top:12px">
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-              <div style="color:var(--muted)">Turbidez (FTU)</div>
-              <div id="curVal" style="font-weight:700">—</div>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-              <div style="color:var(--muted)">Nivel de agua</div>
-              <div id="curLevel" style="font-weight:700">—</div>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-              <div style="color:var(--muted)">Última actualización</div>
-              <div id="curTime" style="font-weight:700">—</div>
-            </div>
-          </div>
-
-          <hr style="border:none;border-top:1px solid rgba(255,255,255,0.03);margin:12px 0">
-
-          <h4 style="margin:6px 0">Explicación rápida</h4>
-          <p style="color:var(--muted);font-size:13px">Este panel simula lecturas de turbidez. La maqueta física muestra cómo el agua marrón del río deposita sedimentos en la ciénaga — el dashboard permite visualizar y alertar cambios que podrían requerir intervención.</p>
-
-          <div style="margin-top:12px">
-            <strong>Umbral de alerta:</strong> <span id="thresholdLabel">FTU &gt; 70</span>
-          </div>
-
-          <div style="margin-top:12px">
-            <button id="downloadCSV">Descargar CSV (simulado)</button>
-          </div>
-
-          <footer>
-            Proyecto educativo — Integración Maqueta física + Ingeniería de software. Coordina: equipo estudiantil.
-          </footer>
-        </div>
-      </div>
+      <div class="alert" id="alerta"></div>
     </div>
   </div>
 
-<script>
-/* -----------------------------
-  Configuración y datos iniciales
-------------------------------*/
-const maxPoints = 30;        // cuántos puntos en la serie
-let running = true;
-let intervalMs = +document.getElementById('speed').value;
-const threshold = 70;        // umbral de turbidez para alerta
-const mapCenter = [10.8, -74.2]; // aproximado Ciénaga Grande
+  <footer>Proyecto educativo — Ingeniería Ambiental + Software | Simulación: Ciénaga Grande de Santa Marta</footer>
 
-// arrays para la serie
-const timeLabels = [];
-const turbValues = [];
-
-/* -----------------------------
-  Inicializar Chart.js - Serie
-------------------------------*/
-const ctx = document.getElementById('turbChart').getContext('2d');
-const turbChart = new Chart(ctx, {
-  type: 'line',
-  data: {
-    labels: timeLabels,
-    datasets: [{
-      label: 'Turbidez (FTU) — simulada',
-      data: turbValues,
-      borderWidth: 2,
-      tension: 0.25,
-      fill: true,
-      backgroundColor: function(context){
-        // gradient amarillo→rojo depending on last value
-        const g = context.chart.ctx.createLinearGradient(0,0,0,200);
-        g.addColorStop(0,'rgba(14,165,164,0.14)');
-        g.addColorStop(1,'rgba(239,68,68,0.06)');
-        return g;
+  <script>
+    const ctx = document.getElementById('turbidezChart');
+    const turbidezChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Turbidez (FTU)',
+          data: [],
+          borderColor: '#3b82f6',
+          tension: 0.3,
+          borderWidth: 3,
+          fill: true,
+          backgroundColor: 'rgba(59,130,246,0.1)'
+        }]
       },
-      borderColor: '#06b6d4',
-      pointRadius: 2,
-      pointBackgroundColor: '#fff'
-    }]
-  },
-  options: {
-    responsive:true,
-    maintainAspectRatio:false,
-    scales:{
-      x:{display:false},
-      y:{
-        min:0,
-        max:150,
-        ticks:{color:'#9fb3c6'}
-      }
-    },
-    plugins:{
-      legend:{display:false},
-      tooltip:{
-        callbacks:{
-          label: function(ctx){ return ` ${ctx.formattedValue} FTU`; }
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 150,
+            ticks: { color: '#cbd5e1' }
+          },
+          x: {
+            ticks: { color: '#cbd5e1' }
+          }
+        },
+        plugins: {
+          legend: { labels: { color: '#e2e8f0' } }
         }
       }
+    });
+
+    let interval;
+    let paused = false;
+    let time = 0;
+
+    function randomTurbidez() {
+      // Simula turbidez con variaciones realistas
+      return Math.max(10, Math.min(150, 50 + Math.sin(time / 5) * 30 + Math.random() * 20));
     }
-  }
-});
 
-/* -----------------------------
-  Gauge (Chart.js doughnut)
-------------------------------*/
-const gaugeCtx = document.getElementById('gaugeChart').getContext('2d');
-let gaugeVal = 0;
-const gauge = new Chart(gaugeCtx, {
-  type:'doughnut',
-  data:{
-    labels:['turbidez','resto'],
-    datasets:[{
-      data:[gaugeVal, 150-gaugeVal],
-      cutout:'70%',
-      circumference:180,
-      rotation:270,
-      borderWidth:0,
-      backgroundColor:['#06b6d4','rgba(255,255,255,0.06)']
-    }]
-  },
-  options:{
-    plugins:{legend:{display:false}},
-    responsive:true,
-    maintainAspectRatio:true,
-    events: []
-  }
-});
+    function updateData() {
+      if (paused) return;
 
-/* -----------------------------
-  Leaflet map + polígonos (representativos)
-------------------------------*/
-const map = L.map('map', { zoomControl:false }).setView(mapCenter, 10);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:''}).addTo(map);
+      const turbidez = randomTurbidez();
+      const nivel = (Math.random() * 1 + 1.5).toFixed(2);
+      const estado = turbidez > 70 ? 'Alta sedimentación' : 'Normal';
 
-// Polígonos simplificados (coordenadas ficticias para demo)
-const polyRiver = L.polygon([[10.94,-74.38],[10.92,-74.3],[10.86,-74.25],[10.82,-74.22]], {color:'#7c3aed',weight:1,fillColor:'#b983ff',fillOpacity:0.12}).addTo(map);
-const polyCienaga = L.polygon([[10.86,-74.28],[10.85,-74.18],[10.78,-74.16],[10.76,-74.25]], {color:'#06b6d4',weight:1,fillColor:'#06b6d4',fillOpacity:0.18}).addTo(map);
-const polySea = L.polygon([[10.78,-74.15],[10.75,-74.12],[10.72,-74.1],[10.7,-74.14]], {color:'#0284c7',weight:1,fillColor:'#0284c7',fillOpacity:0.12}).addTo(map);
+      // Actualiza valores en pantalla
+      document.getElementById('turbidezValue').textContent = turbidez.toFixed(1);
+      document.getElementById('nivelValue').textContent = nivel;
+      document.getElementById('estado').textContent = estado;
 
-// Marker sensor
-const sensorMarker = L.marker([10.80,-74.20]).addTo(map).bindPopup('<b>Sensor de muestra</b><br>Medición simulada');
+      // Cambia color de alerta
+      const alerta = document.getElementById('alerta');
+      if (turbidez > 70) {
+        alerta.textContent = '⚠️ Alerta: Alta turbidez detectada';
+        alerta.className = 'alert red';
+      } else {
+        alerta.textContent = '✅ Agua en condiciones normales';
+        alerta.className = 'alert green';
+      }
 
-// styling function — cambia color según turbidez
-function updateZoneColors(turb){
-  // map turbidity (0..150) to colors
-  let color;
-  if(turb < 40) color = '#06b6d4';        // limpio - teal
-  else if(turb < 90) color = '#f59e0b';   // moderado - amber
-  else color = '#ef4444';                 // alto - red
+      // Actualiza gráfico
+      time++;
+      turbidezChart.data.labels.push(time);
+      turbidezChart.data.datasets[0].data.push(turbidez);
+      if (turbidezChart.data.labels.length > 20) {
+        turbidezChart.data.labels.shift();
+        turbidezChart.data.datasets[0].data.shift();
+      }
+      turbidezChart.update();
+    }
 
-  polyCienaga.setStyle({fillColor:color, color:shade(color,-10), fillOpacity:0.28});
-  // river becomes more turbid color when turb high
-  const riverColor = turb>80 ? '#b45309' : '#7c3aed';
-  polyRiver.setStyle({fillColor:riverColor, fillOpacity:0.12});
-}
+    document.getElementById('startBtn').onclick = () => {
+      if (!interval) {
+        interval = setInterval(updateData, 1000);
+        paused = false;
+      }
+    };
 
-/* small color shading helper */
-function shade(hex, percent) {
-  const f=parseInt(hex.slice(1),16),t=percent<0?0:255,p=percent<0?percent*-1:percent;
-  const R=f>>16,G=(f>>8)&0x00FF,B=f&0x0000FF;
-  const newR=Math.round((t-R)*p/100)+R;
-  const newG=Math.round((t-G)*p/100)+G;
-  const newB=Math.round((t-B)*p/100)+B;
-  return "#"+(0x1000000+ (newR<<16) + (newG<<8) + newB).toString(16).slice(1);
-}
+    document.getElementById('pauseBtn').onclick = () => {
+      paused = !paused;
+      document.getElementById('pauseBtn').textContent = paused ? 'Reanudar' : 'Pausar';
+    };
 
-/* -----------------------------
-  Simulación de datos
-------------------------------*/
-function randomTurbidity(previous){
-  // emula variaciones: base + ruido + eventos
-  const base = 30; // base limpio
-  let drift = (Math.sin(Date.now()/60000) + 1) * 10; // slow diurnal-ish
-  // occasional spikes to simulate eventos (lluvia / arrastre)
-  const spike = Math.random() < 0.03 ? (30 + Math.random()*90) : 0;
-  const noise = (Math.random()-0.5)*8;
-  // tendency to follow previous slightly
-  let next = previous*0.6 + base*0.2 + drift*0.2 + spike + noise;
-  // clamp 0..150
-  next = Math.max(0, Math.min(150, Math.round(next*10)/10));
-  return next;
-}
-
-function pushNewReading(){
-  const now = new Date();
-  const label = now.toLocaleTimeString();
-  const prev = turbValues.length? turbValues[turbValues.length-1] : 25;
-  const next = randomTurbidity(prev);
-
-  if(timeLabels.length >= maxPoints){ timeLabels.shift(); turbValues.shift(); }
-  timeLabels.push(label); turbValues.push(next);
-  turbChart.update();
-  // update gauge
-  gauge.data.datasets[0].data[0] = next;
-  gauge.data.datasets[0].data[1] = 150-next;
-  gauge.update();
-
-  // update UI numbers and map
-  document.getElementById('curVal').textContent = next + ' FTU';
-  document.getElementById('gaugeValue').textContent = next + ' FTU';
-  document.getElementById('curTime').textContent = label;
-  document.getElementById('lastTime').textContent = 'Última lectura: ' + label;
-  // mock water level: if turb high, simulate leveled rise or drop
-  const level = (100 - Math.min(80, Math.round(next/1.8))) + ' %';
-  document.getElementById('curLevel').textContent = level;
-
-  // change map colors and alert
-  updateZoneColors(next);
-  if(next > threshold){
-    document.getElementById('alertBox').style.display = 'block';
-  } else {
-    document.getElementById('alertBox').style.display = 'none';
-  }
-}
-
-let simTimer = null;
-function startSim(){
-  if(simTimer) clearInterval(simTimer);
-  simTimer = setInterval(()=>{ if(running) pushNewReading(); }, intervalMs);
-}
-
-/* initialize with a few points */
-(function seed(){
-  let v = 25;
-  for(let i=0;i<10;i++){
-    v = randomTurbidity(v);
-    const t = new Date(Date.now() - (10-i)*2000);
-    timeLabels.push(t.toLocaleTimeString());
-    turbValues.push(v);
-  }
-  turbChart.update();
-  gauge.data.datasets[0].data[0] = turbValues[turbValues.length-1];
-  gauge.data.datasets[0].data[1] = 150 - gauge.data.datasets[0].data[0];
-  gauge.update();
-  updateZoneColors(turbValues[turbValues.length-1]);
-  document.getElementById('curVal').textContent = turbValues[turbValues.length-1] + ' FTU';
-  document.getElementById('gaugeValue').textContent = turbValues[turbValues.length-1] + ' FTU';
-  document.getElementById('curTime').textContent = timeLabels[timeLabels.length-1];
-})();
-
-startSim();
-
-/* -----------------------------
-  UI interactions
-------------------------------*/
-document.getElementById('btnToggle').addEventListener('click', function(){
-  running = !running;
-  this.textContent = running ? 'Pausar' : 'Continuar';
-  this.classList.toggle('primary', running);
-});
-document.getElementById('btnReset').addEventListener('click', function(){
-  timeLabels.length = 0; turbValues.length = 0;
-  gauge.data.datasets[0].data[0] = 0; gauge.data.datasets[0].data[1]=150;
-  turbChart.update(); gauge.update();
-  document.getElementById('curVal').textContent = '--';
-  document.getElementById('gaugeValue').textContent = '--';
-});
-document.getElementById('speed').addEventListener('input', function(){
-  intervalMs = +this.value;
-  clearInterval(simTimer); startSim();
-});
-document.getElementById('downloadCSV').addEventListener('click', function(){
-  // generate CSV from current arrays
-  let csv = 'time,turbidez_FTU\\n';
-  for(let i=0;i<timeLabels.length;i++){
-    csv += `${timeLabels[i]},${turbValues[i]}\\n`;
-  }
-  const blob = new Blob([csv],{type:'text/csv'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download='turbidez_simulada.csv'; a.click();
-  URL.revokeObjectURL(url);
-});
-
-/* update speed readout visually */
-document.getElementById('speed').addEventListener('change', function(){
-  // nothing else, interval handler already updates
-});
-
-/* ensure map resizes nicely */
-setTimeout(()=>{ map.invalidateSize(); },500);
-
-</script>
+    document.getElementById('resetBtn').onclick = () => {
+      clearInterval(interval);
+      interval = null;
+      time = 0;
+      turbidezChart.data.labels = [];
+      turbidezChart.data.datasets[0].data = [];
+      turbidezChart.update();
+      document.getElementById('turbidezValue').textContent = '--';
+      document.getElementById('nivelValue').textContent = '--';
+      document.getElementById('estado').textContent = 'Esperando datos...';
+      document.getElementById('alerta').textContent = '';
+    };
+  </script>
 </body>
 </html>
