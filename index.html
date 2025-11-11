@@ -1,500 +1,224 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <title>Panel de Monitoreo — Ciénaga Grande (versión realista)</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Panel de Monitoreo — Ciénaga Grande de Santa Marta</title>
 
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <!-- MathJax para fórmulas -->
-  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Chart.js, MathJax y Leaflet -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <style>
-    :root{
-      --bg:#071026;
-      --panel:#0e1b2b;
-      --card:#0b1722;
-      --muted:#98a7b6;
-      --accent:#0ea5a4;
-      --warning:#f59e0b;
-      --danger:#ef4444;
-      --good:#10b981;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      background: linear-gradient(180deg,#071026 0%, #042033 100%);
-      color:#e6eef6;
-      font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-      padding:18px;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      min-height:100vh;
-    }
+<style>
+:root{
+  --good:#0ea5a4; --warn:#facc15; --danger:#ef4444;
+  --panel:rgba(5,25,35,0.6); --text:#eaf6f8;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  color:var(--text);
+  font-family:"Segoe UI",Roboto,sans-serif;
+  overflow-x:hidden;
+  background:radial-gradient(circle at 50% 20%, #0a3344 0%, #041f29 80%);
+  min-height:100vh;
+}
 
-    /* subtle animated "water" background inside top panel */
-    .water-bg{
-      position:relative;
-      width:100%;
-      max-width:1200px;
-      border-radius:18px;
-      padding:18px;
-      background:
-        radial-gradient(1200px 300px at 10% 10%, rgba(14,165,164,0.03), transparent 10%),
-        linear-gradient(180deg, rgba(5,20,30,0.6), rgba(2,10,18,0.6));
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-      margin-bottom:20px;
-      overflow:hidden;
-    }
+/* Fondo animado: agua + algas */
+.bg{
+  position:fixed; inset:0;
+  background:
+   radial-gradient(circle at 20% 30%, rgba(16,185,129,0.1) 0%, transparent 40%),
+   radial-gradient(circle at 80% 60%, rgba(6,182,212,0.08) 0%, transparent 40%),
+   repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,0.02) 0, rgba(255,255,255,0.02) 2px, transparent 3px, transparent 6px);
+  animation:moveBg 18s linear infinite alternate;
+  z-index:-2;
+}
+@keyframes moveBg{
+  from{background-position:0 0,0 0,0 0}
+  to{background-position:10px 20px, -10px -20px, 20px 10px}
+}
+/* algas flotando */
+.alga{
+  position:fixed;
+  width:80px; height:180px;
+  background:linear-gradient(180deg,rgba(34,197,94,0.25),rgba(34,197,94,0.05));
+  border-radius:40% 60% 40% 60%;
+  animation:float 20s ease-in-out infinite;
+  filter:blur(2px);
+  z-index:-1;
+}
+.alga:nth-child(1){left:10%;bottom:0;animation-delay:0s;}
+.alga:nth-child(2){left:40%;bottom:0;animation-delay:5s;}
+.alga:nth-child(3){left:70%;bottom:0;animation-delay:10s;}
+@keyframes float{
+  0%,100%{transform:translateY(0) rotate(0deg)}
+  50%{transform:translateY(-30px) rotate(2deg)}
+}
 
-    /* moving gradient for soft water effect */
-    .water-anim{
-      position:absolute; left:-25%; top:-25%; width:150%; height:150%;
-      background: linear-gradient(90deg, rgba(14,165,164,0.04), rgba(6,182,212,0.06), rgba(14,165,164,0.04));
-      transform: translateX(0);
-      animation: waterMove 18s linear infinite;
-      pointer-events:none;
-      mix-blend-mode:screen;
-      opacity:0.7;
-      filter: blur(18px);
-    }
-    @keyframes waterMove { from{transform:translateX(-10%)} to{transform:translateX(10%)} }
+/* contenedores */
+main{max-width:1200px;margin:auto;padding:20px;}
+h1{text-align:center;margin:0 0 10px;}
+p.lead{text-align:center;margin:0 0 20px;color:#b6e2e0;}
+.panel{
+  background:var(--panel);
+  backdrop-filter:blur(10px);
+  border-radius:18px;
+  padding:18px;
+  box-shadow:0 10px 20px rgba(0,0,0,0.4);
+}
+.grid{display:grid;grid-template-columns:1fr 380px;gap:20px;}
+@media(max-width:950px){.grid{grid-template-columns:1fr;}}
 
-    header{position:relative; z-index:2; text-align:center; margin-bottom:8px}
-    h1{margin:6px 0 2px;font-size:1.9rem}
-    p.lead{color:var(--muted); margin:0;font-size:0.95rem}
+.card{background:rgba(255,255,255,0.03);border-radius:12px;padding:12px;margin-bottom:12px;}
+canvas{max-width:100%;}
+.small{color:#bcd7d6;font-size:0.85rem;}
+.btn{background:#06b6d4;color:#031b24;border:none;border-radius:6px;padding:8px 12px;font-weight:700;cursor:pointer;}
+.btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.15);color:#c0dcdc}
+.salinity-control{text-align:center;margin-top:10px;}
+.salinity-control input[type=range]{width:90%;max-width:420px;}
+.sal-value{font-weight:700;color:#06b6d4;}
+#map{height:300px;border-radius:10px;overflow:hidden;margin-top:10px;}
+.status-box{margin-top:8px;}
+.dot{width:16px;height:16px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:middle;}
 
-    .grid{
-      display:grid;
-      grid-template-columns: 1fr 380px;
-      gap:18px;
-      width:100%;
-      max-width:1200px;
-      margin-top:6px;
-      z-index:2;
-    }
-
-    .card{
-      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
-      border-radius:12px;
-      padding:14px;
-      border: 1px solid rgba(255,255,255,0.03);
-    }
-
-    .chart-wrap{height:300px;display:flex;align-items:center;justify-content:center}
-    canvas{max-width:100%;}
-
-    .controls{display:flex;flex-direction:column;gap:8px}
-    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .btn{background:var(--accent);color:#032022;padding:8px 12px;border-radius:8px;border:none;cursor:pointer;font-weight:700}
-    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
-    .small{font-size:0.85rem;color:var(--muted)}
-
-    /* salinity control */
-    .salinity-control{display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:10px}
-    input[type="range"]{width:90%;max-width:420px}
-    .sal-value{font-weight:700;color:var(--accent);font-size:1rem}
-
-    /* semantic status */
-    .status-box{display:flex;flex-direction:column;gap:8px;margin-top:10px}
-    .sem{display:flex;gap:8px;align-items:center}
-    .dot{width:14px;height:14px;border-radius:4px}
-    .msg{font-weight:700}
-
-    /* map */
-    #map{height:300px;border-radius:10px;overflow:hidden}
-
-    /* model section */
-    .model{
-      width:100%;
-      max-width:1200px;
-      background:linear-gradient(180deg, rgba(0,0,0,0.03), rgba(255,255,255,0.01));
-      border-radius:14px;padding:18px;margin-top:18px;border:1px solid rgba(255,255,255,0.03)
-    }
-    .formula{ text-align:center; color:var(--muted); margin-bottom:10px }
-    .model-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;margin-bottom:12px}
-    .model-controls input[type="number"]{width:110px;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
-    .model-charts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-
-    .interpret{margin-top:12px;text-align:center;color:var(--muted)}
-
-    footer{color:var(--muted);margin-top:18px;font-size:0.9rem}
-
-    /* responsive */
-    @media (max-width:980px){
-      .grid{grid-template-columns:1fr}
-      .model-charts{grid-template-columns:1fr}
-    }
-  </style>
+/* modelo matemático */
+.model{margin-top:25px;padding:20px;background:rgba(255,255,255,0.05);border-radius:14px;}
+.formula{text-align:center;color:#a6dbd5;}
+.model-controls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:12px 0;}
+.model-controls input{width:90px;padding:5px;background:rgba(255,255,255,0.1);border:none;border-radius:4px;color:white;}
+.model-charts{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:800px){.model-charts{grid-template-columns:1fr;}}
+.interpret{text-align:center;margin-top:10px;color:#c8e5e3;}
+footer{text-align:center;margin:18px 0;color:#a0c7c4;font-size:0.9rem;}
+</style>
 </head>
 <body>
-  <div class="water-bg">
-    <div class="water-anim" aria-hidden="true"></div>
-    <header>
-      <h1>🌊 Panel de Monitoreo — Ciénaga Grande (versión realista)</h1>
-      <p class="lead">Integración maqueta física + monitoreo satelital + simulación matemática</p>
-    </header>
+<div class="bg"></div>
+<div class="alga"></div><div class="alga"></div><div class="alga"></div>
 
+<main>
+  <h1>🌿 Panel de Monitoreo — Ciénaga Grande de Santa Marta</h1>
+  <p class="lead">Simulación ambiental y matemática: relación entre salinidad, turbidez y crecimiento de <em>Hydrilla verticillata</em></p>
+
+  <div class="panel">
     <div class="grid">
-      <!-- Left: turbidez chart -->
       <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <div style="font-weight:700">Turbidez (FTU)</div>
-          <div class="small">Valores en tiempo real (simulado)</div>
-        </div>
-        <div class="chart-wrap card" style="padding:12px;border-radius:10px">
-          <canvas id="turbChart"></canvas>
-        </div>
+        <strong>Turbidez (FTU)</strong>
+        <canvas id="turbChart"></canvas>
       </div>
-
-      <!-- Right: controls + map -->
       <div class="card">
-        <div style="font-weight:700;margin-bottom:6px">Lectura actual</div>
-        <div class="small">Turbidez: <span id="curTurb" style="font-weight:800">--</span> FTU</div>
-        <div class="small">Nivel agua: <span id="curLvl">--</span> m</div>
+        <div class="small">Turbidez actual: <span id="curTurb">--</span> FTU</div>
+        <div class="small">Nivel de agua: <span id="curLvl">--</span> m</div>
         <div class="small">Tiempo: <span id="curTime">0.0</span> min</div>
-
-        <div style="margin-top:10px" class="controls">
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button id="btnStart" class="btn">Iniciar</button>
-            <button id="btnPause" class="btn ghost">Pausar</button>
-            <button id="btnReset" class="btn ghost">Reset</button>
-          </div>
-
-          <div class="salinity-control">
-            <div style="font-weight:700">Nivel de salinidad (g/L)</div>
-            <!-- Rango realista 10..35 -->
-            <input id="salSlider" type="range" min="10" max="35" step="1" value="25">
-            <div class="row"><div class="sal-value" id="salText">25 g/L</div></div>
-            <div class="small">Nota: el deslizador simula una intervención (añadir/sustraer sal) sobre la ciénaga.</div>
-          </div>
-
-          <div class="status-box">
-            <div class="sem"><div class="dot" id="semDot" style="background:var(--good)"></div>
-              <div class="msg" id="semMessage">Agua en condiciones normales</div>
-            </div>
-            <div id="advice" class="small" style="color:var(--muted)"></div>
-          </div>
+        <div style="margin-top:10px;">
+          <button id="btnStart" class="btn">Iniciar</button>
+          <button id="btnPause" class="btn ghost">Pausar</button>
+          <button id="btnReset" class="btn ghost">Reset</button>
         </div>
-
-        <div style="margin-top:12px">
-          <div id="map" style="border-radius:8px"></div>
+        <div class="salinity-control">
+          <div><strong>Salinidad (g/L)</strong></div>
+          <input id="salSlider" type="range" min="10" max="35" step="1" value="25">
+          <div class="sal-value" id="salText">25 g/L</div>
         </div>
-      </div>
-    </div> <!-- grid end -->
-  </div> <!-- water-bg end -->
-
-  <!-- Modelo matemático -->
-  <div class="model">
-    <h2 style="text-align:center">📈 Simulación: crecimiento de <em>Hydrilla verticillata</em> según salinidad</h2>
-    <div class="formula">
-      <div>Se usan las fórmulas:</div>
-      <div style="font-weight:700;margin-top:6px">
-        \( S(t) = S_0 \, e^{-\beta t} \) &nbsp;&nbsp; y &nbsp;&nbsp; \( r(t) = e^{-\alpha (S(t) - 10)^2} \)
-      </div>
-      <div class="small" style="margin-top:6px">Nota: <strong>\(S_0\)</strong> es la <em>salinidad inicial del sistema</em> (valor natural antes de una intervención). El deslizador de la parte superior simula una intervención externa (añadir/quitar sal).</div>
-    </div>
-
-    <div class="model-controls">
-      <label>Salinidad inicial \(S_0\) (g/L): <input id="S0" type="number" value="25" step="0.1" min="0"></label>
-      <label>α: <input id="alpha" type="number" value="0.02" step="0.01" min="0"></label>
-      <label>β: <input id="beta" type="number" value="0.1" step="0.01" min="0"></label>
-      <label>Tiempo máx (semanas): <input id="tmax" type="number" value="12" step="1" min="1"></label>
-      <button id="btnCalcModel" class="btn">📊 Calcular modelo</button>
-    </div>
-
-    <div class="model-charts" style="margin-top:12px">
-      <div class="card">
-        <div style="font-weight:700;margin-bottom:6px">Salinidad \(S(t)\) vs tiempo</div>
-        <canvas id="salChart"></canvas>
-      </div>
-      <div class="card">
-        <div style="font-weight:700;margin-bottom:6px">Tasa de crecimiento \(r(t)\) vs tiempo</div>
-        <canvas id="rChart"></canvas>
+        <div class="status-box">
+          <div><span id="semDot" class="dot" style="background:var(--good)"></span><span id="semMsg">Agua en condiciones normales</span></div>
+          <div id="advice" class="small"></div>
+        </div>
+        <div id="map"></div>
       </div>
     </div>
-
-    <p id="modelInterpret" class="interpret"></p>
   </div>
 
-  <footer>Proyecto educativo — Ciénaga Grande de Santa Marta · Ingeniería Ambiental + Ingeniería de Software</footer>
+  <div class="model">
+    <h2 style="text-align:center">📈 Simulación matemática</h2>
+    <div class="formula">
+      \(S(t)=S_0e^{-\beta t}, \quad r(t)=e^{-\alpha(S(t)-10)^2}\)
+    </div>
+    <div class="model-controls">
+      <label>S₀<input id="S0" type="number" value="25" step="0.1"></label>
+      <label>α<input id="alpha" type="number" value="0.02" step="0.01"></label>
+      <label>β<input id="beta" type="number" value="0.1" step="0.01"></label>
+      <label>Tiempo max (semanas)<input id="tmax" type="number" value="12"></label>
+      <button id="btnCalcModel" class="btn">Calcular</button>
+    </div>
+    <div class="model-charts">
+      <div class="card"><canvas id="salChart"></canvas></div>
+      <div class="card"><canvas id="rChart"></canvas></div>
+    </div>
+    <p id="modelInterpret" class="interpret"></p>
+  </div>
+  <footer>Proyecto educativo — Ingeniería Ambiental y de Software · Ciénaga Grande de Santa Marta</footer>
+</main>
 
-  <script>
-  /*******************************
-    Variables y setup inicial
-  *******************************/
-  // Charts
-  const turbCtx = document.getElementById('turbChart').getContext('2d');
-  const turbChart = new Chart(turbCtx, {
-    type: 'line',
-    data: { labels: [], datasets: [{ label:'Turbidez (FTU)', data:[], borderColor:'#06b6d4', backgroundColor:'rgba(6,182,212,0.07)', pointRadius:3, tension:0.3 }]},
-    options: {
-      responsive:true,
-      plugins:{ legend:{labels:{color:'#cbd5e1'}}},
-      scales:{ x:{ title:{display:true,text:'Tiempo (min)',color:'#9fb3c6'}, ticks:{color:'#9fb3c6'} }, y:{ min:0, max:150, ticks:{color:'#9fb3c6'} } }
-    }
-  });
+<script>
+/*=== CONFIGURACIÓN GENERAL ===*/
+const salSlider=document.getElementById("salSlider"),salText=document.getElementById("salText"),semDot=document.getElementById("semDot"),semMsg=document.getElementById("semMsg"),advice=document.getElementById("advice"),curTurb=document.getElementById("curTurb"),curLvl=document.getElementById("curLvl"),curTime=document.getElementById("curTime");
+const btnStart=document.getElementById("btnStart"),btnPause=document.getElementById("btnPause"),btnReset=document.getElementById("btnReset");
 
-  // Models charts
-  const salCtx = document.getElementById('salChart').getContext('2d');
-  const salChart = new Chart(salCtx, {
-    type:'line',
-    data:{ labels:[], datasets:[{ label:'Salinidad (g/L)', data:[], borderColor:'#3b82f6', borderWidth:2, fill:false }]},
-    options:{ scales:{ x:{ title:{display:true,text:'Tiempo (semanas)', color:'#9fb3c6'}, ticks:{color:'#9fb3c6'} }, y:{ title:{display:true,text:'Salinidad (g/L)',color:'#9fb3c6'}, ticks:{color:'#9fb3c6'} } }, plugins:{ legend:{labels:{color:'#e2e8f0'}}}}
-  });
+/*=== MAPA ===*/
+const map=L.map("map",{zoomControl:false}).setView([10.95,-74.5],9);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:""}).addTo(map);
+L.circle([10.75,-74.8],{radius:8000,color:"#ef4444",fillColor:"#ef4444",fillOpacity:.08}).addTo(map).bindPopup("Entrada del río Magdalena — alta sedimentación");
+L.circle([10.95,-74.5],{radius:7000,color:"#facc15",fillColor:"#facc15",fillOpacity:.06}).addTo(map).bindPopup("Zona central — turbidez moderada");
+L.circle([11.1,-74.3],{radius:6000,color:"#10b981",fillColor:"#10b981",fillOpacity:.05}).addTo(map).bindPopup("Salida al mar Caribe — agua más limpia");
 
-  const rCtx = document.getElementById('rChart').getContext('2d');
-  const rChart = new Chart(rCtx, {
-    type:'line',
-    data:{ labels:[], datasets:[{ label:'Tasa r(t)', data:[], borderColor:'#10b981', borderWidth:2, fill:false }]},
-    options:{ scales:{ x:{ title:{display:true,text:'Tiempo (semanas)', color:'#9fb3c6'}, ticks:{color:'#9fb3c6'} }, y:{ title:{display:true,text:'Crecimiento relativo', color:'#9fb3c6'}, min:0, max:1, ticks:{color:'#9fb3c6'} } }, plugins:{ legend:{labels:{color:'#e2e8f0'}}}}
-  });
+/*=== TURBIDEZ ===*/
+const turbCtx=document.getElementById("turbChart").getContext("2d");
+const turbChart=new Chart(turbCtx,{type:"line",data:{labels:[],datasets:[{label:"Turbidez (FTU)",data:[],borderColor:"#06b6d4",tension:.3,fill:true,backgroundColor:"rgba(6,182,212,0.1)"}]},options:{scales:{x:{title:{display:true,text:"Tiempo (min)"},ticks:{color:"#bcd7d6"}},y:{min:0,max:150,ticks:{color:"#bcd7d6"}}},plugins:{legend:{labels:{color:"#bcd7d6"}}}}});
 
-  // Map
-  const map = L.map('map', { zoomControl:false }).setView([10.95,-74.5],9);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:''}).addTo(map);
-  L.circle([10.75,-74.8], {radius:8000, color:'#ef4444', fillColor:'#ef4444', fillOpacity:0.08}).addTo(map).bindPopup('Río Magdalena — área de entrada (alta sedimentación)');
-  L.circle([10.95,-74.5], {radius:7000, color:'#f59e0b', fillColor:'#f59e0b', fillOpacity:0.06}).addTo(map).bindPopup('Ciénaga Grande — zona central (turbidez moderada)');
-  L.circle([11.1,-74.3], {radius:6000, color:'#10b981', fillColor:'#10b981', fillOpacity:0.05}).addTo(map).bindPopup('Mar Caribe — zona de salida (agua más limpia)');
+let targetSal=parseFloat(localStorage.getItem("sal")||25),currentSal=targetSal,smoothing=.06,simSeconds=0,turbTimer=null,running=false;
+salSlider.value=targetSal;salText.textContent=targetSal+" g/L";updateSem(targetSal);
 
-  /*******************************
-    Estado y lógica de simulación
-  *******************************/
-  // Elements
-  const salSlider = document.getElementById('salSlider');
-  const salText = document.getElementById('salText');
-  const semDot = document.getElementById('semDot');
-  const semMsg = document.getElementById('semMessage');
-  const advice = document.getElementById('advice');
-  const curTurb = document.getElementById('curTurb');
-  const curLvl = document.getElementById('curLvl');
-  const curTime = document.getElementById('curTime');
+function computeTurbidity(sal,t){const m=t/60;let base=55+Math.sin(m*2)*18,eff=0;if(sal<20)eff=18-(sal-10)*.8;else if(sal<25)eff=-12;else if(sal<=30)eff=-6;else eff=(sal-30)*3+6;const n=(Math.random()-.5)*4;let turb=base+eff+n;return Math.max(5,Math.min(150,Math.round(turb*10)/10))}
+function tick(){currentSal+= (targetSal-currentSal)*smoothing;const turb=computeTurbidity(currentSal,simSeconds);const lvl=(1.5+Math.sin(simSeconds/120)*.2).toFixed(2);
+curTurb.textContent=turb+" FTU";curLvl.textContent=lvl+" m";simSeconds++;curTime.textContent=(simSeconds/60).toFixed(1);
+if(turbChart.data.labels.length>40){turbChart.data.labels.shift();turbChart.data.datasets[0].data.shift();}
+turbChart.data.labels.push((simSeconds/60).toFixed(1));turbChart.data.datasets[0].data.push(turb);turbChart.update();}
 
-  // model inputs
-  const S0in = document.getElementById('S0'), alphaIn = document.getElementById('alpha'), betaIn = document.getElementById('beta'), tmaxIn = document.getElementById('tmax');
-  const btnCalc = document.getElementById('btnCalcModel'), modelInterpret = document.getElementById('modelInterpret');
+btnStart.onclick=()=>{if(!running){running=true;turbTimer=setInterval(tick,1000);}}
+btnPause.onclick=()=>{if(running){running=false;clearInterval(turbTimer);turbTimer=null;btnPause.textContent="Reanudar";}else{running=true;turbTimer=setInterval(tick,1000);btnPause.textContent="Pausar";}}
+btnReset.onclick=()=>{running=false;clearInterval(turbTimer);turbTimer=null;simSeconds=0;turbChart.data.labels=[];turbChart.data.datasets[0].data=[];turbChart.update();curTurb.textContent="--";curLvl.textContent="--";curTime.textContent="0.0";btnPause.textContent="Pausar";}
 
-  // controls
-  const btnStart = document.getElementById('btnStart'), btnPause = document.getElementById('btnPause'), btnReset = document.getElementById('btnReset');
+/*=== SLIDER SALINIDAD ===*/
+salSlider.oninput=()=>{targetSal=parseFloat(salSlider.value);salText.textContent=targetSal+" g/L";updateSem(targetSal);localStorage.setItem("sal",targetSal);}
+function updateSem(v){
+ if(v>30){semDot.style.background="var(--danger)";semMsg.textContent="🚫 Exceso de salinidad";advice.textContent="El exceso (>30 g/L) daña peces y manglares.";}
+ else if(v>=25){semDot.style.background="var(--warn)";semMsg.textContent="⚠ Límite alto";advice.textContent="Te acercas al máximo recomendado (30 g/L).";}
+ else if(v>=20){semDot.style.background="var(--good)";semMsg.textContent="🔍 Rango medio";advice.textContent="Control moderado de Hydrilla.";}
+ else{semDot.style.background="var(--good)";semMsg.textContent="Agua dulce";advice.textContent="Condiciones que favorecen crecimiento de algas.";}
+ const body=document.body;
+ if(v>30)body.style.background="radial-gradient(circle at 50% 20%,#3a1a1a 0%,#1a0505 80%)";
+ else if(v>=25)body.style.background="radial-gradient(circle at 50% 20%,#1b3f3f 0%,#0a1d23 80%)";
+ else if(v>=20)body.style.background="radial-gradient(circle at 50% 20%,#0b3c36 0%,#042422 80%)";
+ else body.style.background="radial-gradient(circle at 50% 20%,#0a3344 0%,#041f29 80%)";
+}
 
-  // Simulation state
-  let targetSal = parseFloat(salSlider.value);   // target (slider)
-  let currentSal = targetSal;                    // smoothed actual salinity applied to turbidity calc
-  let turbDataTimer = null;
-  let running = false;
-  let simSeconds = 0;
+/*=== MODELO MATEMÁTICO ===*/
+const S0=document.getElementById("S0"),alpha=document.getElementById("alpha"),beta=document.getElementById("beta"),tmax=document.getElementById("tmax"),btnCalc=document.getElementById("btnCalcModel"),modelInterpret=document.getElementById("modelInterpret");
+const salCtx=document.getElementById("salChart").getContext("2d"),rCtx=document.getElementById("rChart").getContext("2d");
+const salChart=new Chart(salCtx,{type:"line",data:{labels:[],datasets:[{label:"S(t)",data:[],borderColor:"#3b82f6"}]},options:{scales:{x:{title:{display:true,text:"Semanas"},ticks:{color:"#bcd7d6"}},y:{title:{display:true,text:"Salinidad (g/L)"},ticks:{color:"#bcd7d6"}}},plugins:{legend:{labels:{color:"#bcd7d6"}}}}});
+const rChart=new Chart(rCtx,{type:"line",data:{labels:[],datasets:[{label:"r(t)",data:[],borderColor:"#10b981"}]},options:{scales:{x:{title:{display:true,text:"Semanas"},ticks:{color:"#bcd7d6"}},y:{min:0,max:1,ticks:{color:"#bcd7d6"}}},plugins:{legend:{labels:{color:"#bcd7d6"}}}}});
 
-  // smoothing factor for gradual change (0..1). Lower = slower transition.
-  const smoothing = 0.06;
-
-  // initialize UI
-  salText.textContent = targetSal + ' g/L';
-  updateSemStatus(targetSal);
-
-  // update when moving slider: set target salinity and messages
-  salSlider.addEventListener('input', ()=>{
-    targetSal = parseFloat(salSlider.value);
-    salText.textContent = targetSal + ' g/L';
-    // Advice messages:
-    if (targetSal >= 30) {
-      semDot.style.background = 'var(--danger)';
-      semMsg.textContent = '⚠️ Exceso de salinidad (riesgo ambiental)';
-      advice.textContent = 'El valor supera el límite recomendado (30 g/L). Exceso de sal puede afectar peces, manglares y la estructura del ecosistema.';
-    } else if (targetSal >= 25) {
-      semDot.style.background = 'var(--warning)';
-      semMsg.textContent = '⚠ Límite recomendado alcanzado';
-      advice.textContent = 'Cuidado: te acercas al límite máximo recomendado (30 g/L).';
-    } else if (targetSal >= 20) {
-      semDot.style.background = 'var(--good)';
-      semMsg.textContent = '🔍 Salinidad en rango alto pero aceptable';
-      advice.textContent = 'Salinidad en rango alto (20–25 g/L) — favorable para evitar proliferación excesiva de Hydrilla.';
-    } else {
-      semDot.style.background = 'var(--good)';
-      semMsg.textContent = 'Agua con baja salinidad';
-      advice.textContent = 'Baja salinidad favorece proliferación de algas invasoras.';
-    }
-  });
-
-  // smoothing interpolation (call every tick)
-  function smoothSalinity(){
-    // move currentSal toward targetSal
-    currentSal += (targetSal - currentSal) * smoothing;
-    // return currentSal
-    return currentSal;
-  }
-
-  // turbidity model: returns FTU based on currentSal & additional dynamics
-  function computeTurbidity(sal, tSec){
-    // base turbidity pattern (natural oscillation) - minutes scale
-    const minutes = tSec / 60;
-    const baseWave = 55 + Math.sin(minutes * 2.0) * 18; // oscillation
-    // effect of salinity:
-    // - low sal (<20): particles stay suspended => higher turbidity
-    // - moderate sal (20-25): turbidity decreases (particles settle)
-    // - high sal (25-30): turbidity low but approaching limit
-    // - above 30: re-suspension risk => turbidity increases
-    let effect = 0;
-    if (sal < 20) effect = 18 - (sal - 10) * 0.8;         // higher turb when very low sal
-    else if (sal >= 20 && sal < 25) effect = -12;         // particles settle -> reduce turbidity
-    else if (sal >=25 && sal <=30) effect = -6;           // small reduction (close to limit)
-    else effect = (sal - 30) * 3 + 6;                     // re-suspension increases turbidity
-
-    // small noise
-    const noise = (Math.random() - 0.5) * 4;
-
-    let turb = baseWave + effect + noise;
-    turb = Math.max(5, Math.min(150, Math.round(turb*10)/10));
-    return turb;
-  }
-
-  // update UI each second
-  function tick(){
-    // smooth sal
-    const salNow = smoothSalinity();
-    // simulate turbidity
-    const turb = computeTurbidity(salNow, simSeconds);
-    const level = (1.5 + Math.sin(simSeconds/120) * 0.2).toFixed(2);
-
-    // update displays
-    curTurb.textContent = turb + ' FTU';
-    curLvl.textContent = level + ' m';
-    simSeconds += 1;
-    curTime.textContent = (simSeconds/60).toFixed(1);
-
-    // push to chart (time in minutes)
-    const timeMin = (simSeconds/60).toFixed(2);
-    if (turbChart.data.labels.length > 40) {
-      turbChart.data.labels.shift(); turbChart.data.datasets[0].data.shift();
-    }
-    turbChart.data.labels.push(timeMin);
-    turbChart.data.datasets[0].data.push(turb);
-    turbChart.update();
-
-    // update semaforo color based on targetSal (not smoothed): immediate feedback
-    if (targetSal > 30) {
-      semDot.style.background = 'var(--danger)';
-      semMsg.textContent = '🚫 Exceso de salinidad';
-      advice.textContent = 'El exceso de sal (>30 g/L) puede afectar peces, manglares y fauna bentónica. Evitar vertidos salinos.';
-    } else if (targetSal >= 30) {
-      semDot.style.background = 'var(--warning)';
-      semMsg.textContent = '⚠ Límite recomendado alcanzado';
-      advice.textContent = 'Estás en el límite superior recomendado (≈30 g/L). Precaución.';
-    }
-    // note: other slider messages handled on input event
-  }
-
-  // Control buttons
-  btnStart.addEventListener('click', ()=>{
-    if (!running) {
-      running = true;
-      if (!turbDataTimer) turbDataTimer = setInterval(tick, 1000);
-    }
-  });
-  btnPause.addEventListener('click', ()=>{
-    if (!running) {
-      // resume
-      running = true;
-      if (!turbDataTimer) turbDataTimer = setInterval(tick, 1000);
-      btnPause.textContent = 'Pausar';
-    } else {
-      // pause
-      running = false;
-      clearInterval(turbDataTimer);
-      turbDataTimer = null;
-      btnPause.textContent = 'Reanudar';
-    }
-  });
-  btnReset.addEventListener('click', ()=>{
-    running = false;
-    clearInterval(turbDataTimer);
-    turbDataTimer = null;
-    simSeconds = 0;
-    turbChart.data.labels = []; turbChart.data.datasets[0].data = [];
-    turbChart.update();
-    curTurb.textContent = '--'; curLvl.textContent='--'; curTime.textContent='0.0';
-    currentSal = targetSal = parseFloat(salSlider.value);
-    btnPause.textContent = 'Pausar';
-  });
-
-  // initial set
-  currentSal = targetSal = parseFloat(salSlider.value);
-
-  /*******************************
-    Modelo matemático (S(t), r(t))
-  *******************************/
-  function calcModel(){
-    const S0 = parseFloat(S0in.value);
-    const alpha = parseFloat(alphaIn.value);
-    const beta = parseFloat(betaIn.value);
-    const tmax = parseFloat(tmaxIn.value);
-    const labels = [];
-    const Svals = []; const Rvals = [];
-    // step 0.5 semanas
-    for (let t=0; t<=tmax; t+=0.5){
-      labels.push(t.toFixed(2));
-      const s = S0 * Math.exp(-beta * t);
-      const r = Math.exp(-alpha * Math.pow(s - 10, 2));
-      Svals.push(Math.round(s*100)/100);
-      Rvals.push(Math.round(r*10000)/10000);
-    }
-    salChart.data.labels = labels; salChart.data.datasets[0].data = Svals; salChart.update();
-    rChart.data.labels = labels; rChart.data.datasets[0].data = Rvals; rChart.update();
-
-    // interpretation and environment message
-    let msg = '';
-    if (S0 > 30) {
-      msg = 'La salinidad inicial supera 30 g/L: además de reducir el crecimiento de Hydrilla, el exceso salino afecta osmóticamente a peces y fauna, altera ciclos de nutrientes y puede provocar pérdida de biodiversidad.';
-    } else if (S0 >= 25) {
-      msg = 'Salinidad inicial alta (25–30): crecimiento de Hydrilla controlado; monitorizar impacto en especies sensibles.';
-    } else if (S0 >= 20) {
-      msg = 'Salinidad inicial en rango medio (20–25): condiciones que reducen proliferación excesiva de Hydrilla.';
-    } else {
-      msg = 'Salinidad inicial baja (<20): favorece la proliferación de Hydrilla; riesgo de invasión vegetal.';
-    }
-    modelInterpret.textContent = msg;
-  }
-
-  btnCalc.addEventListener('click', ()=>{
-    calcModel();
-    // render MathJax (in case inputs changed)
-    if (window.MathJax) MathJax.typesetPromise();
-  });
-
-  // initial model plot
-  calcModel();
-
-  // helper: update sem status based on initial slider target
-  function updateSemStatus(val){
-    if (val > 30) {
-      semDot.style.background = 'var(--danger)';
-      semMsg.textContent = '🚫 Exceso de salinidad';
-      advice.textContent = 'Evitar exceder 30 g/L.';
-    } else if (val >= 25) {
-      semDot.style.background = 'var(--warning)';
-      semMsg.textContent = '⚠ Límite recomendado alcanzado';
-      advice.textContent = 'Precaución: aproximándose al límite.';
-    } else if (val >= 20) {
-      semDot.style.background = 'var(--good)';
-      semMsg.textContent = '🔍 Salinidad en rango medio';
-      advice.textContent = 'Rango favorable para controlar Hydrilla.';
-    } else {
-      semDot.style.background = 'var(--good)';
-      semMsg.textContent = 'Agua con baja salinidad';
-      advice.textContent = 'Baja salinidad favorece proliferación de algas.';
-    }
-  }
-
-  // ensure MathJax renders formulas
-  if (window.MathJax) MathJax.typesetPromise();
-
-  </script>
+function calcModel(){
+ const S0v=parseFloat(S0.value),av=parseFloat(alpha.value),bv=parseFloat(beta.value),tm=parseFloat(tmax.value);
+ const labs=[],Svals=[],Rvals=[];
+ for(let t=0;t<=tm;t+=.5){labs.push(t.toFixed(1));const s=S0v*Math.exp(-bv*t);const r=Math.exp(-av*Math.pow(s-10,2));Svals.push(s.toFixed(2));Rvals.push(r.toFixed(3));}
+ salChart.data.labels=labs;salChart.data.datasets[0].data=Svals;salChart.update();
+ rChart.data.labels=labs;rChart.data.datasets[0].data=Rvals;rChart.update();
+ let msg="";if(S0v>30)msg="Salinidad >30 g/L: reduce crecimiento de Hydrilla y daña ecosistema (peces, manglares).";
+ else if(S0v>=25)msg="Salinidad alta (25–30): controla Hydrilla, monitorear especies sensibles.";
+ else if(S0v>=20)msg="Rango ideal (20–25): equilibrio ecológico y control moderado.";
+ else msg="Baja salinidad (<20): favorece proliferación de Hydrilla y eutrofización.";
+ modelInterpret.textContent=msg;
+ localStorage.setItem("S0",S0v);localStorage.setItem("alpha",av);localStorage.setItem("beta",bv);localStorage.setItem("tmax",tm);
+}
+btnCalc.onclick=calcModel;
+S0.value=localStorage.getItem("S0")||25;alpha.value=localStorage.getItem("alpha")||0.02;beta.value=localStorage.getItem("beta")||0.1;tmax.value=localStorage.getItem("tmax")||12;calcModel();
+if(window.MathJax)MathJax.typesetPromise();
+</script>
 </body>
 </html>
